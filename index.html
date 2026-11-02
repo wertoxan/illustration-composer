@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Конструктор иллюстраций</title>
+  <meta name="description" content="Собирает векторные композиции из готовой библиотеки SVG-иллюстраций по метафоре или списку объектов.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237864D7'/%3E%3Cpath d='M8 20l8-10 8 10z' fill='%23F9ECB0'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>Конструктор иллюстраций</h1>
+        <p>Композиции только из готовых векторных объектов библиотеки — без генерации новых</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn ghost" id="undo" title="Отменить (Ctrl+Z)">↶</button>
+      <button class="btn ghost" id="redo" title="Повторить (Ctrl+Shift+Z)">↷</button>
+      <button class="btn ghost" id="copy-svg">Скопировать SVG</button>
+      <button class="btn primary" id="download-svg">Скачать SVG</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel left" aria-label="Сборка композиции">
+      <section class="card">
+        <div class="tabs" role="tablist">
+          <button role="tab" class="tab active" data-mode="metaphor" aria-selected="true">По метафоре</button>
+          <button role="tab" class="tab" data-mode="names" aria-selected="false">По объектам</button>
+        </div>
+        <label class="field">
+          <span id="prompt-label">Метафора или заголовок</span>
+          <textarea id="prompt" rows="3" placeholder="Например: Как начать копить и защитить сбережения"></textarea>
+        </label>
+        <div class="chips" id="prompt-examples"></div>
+        <p class="hint" id="prompt-hint"></p>
+
+        <div class="field">
+          <span>Шаблон</span>
+          <div class="segmented" id="templates"></div>
+        </div>
+        <div class="row">
+          <label class="field grow">
+            <span>Формат</span>
+            <select id="canvas-select"></select>
+          </label>
+          <div class="field">
+            <span>Размер</span>
+            <div class="segmented" id="sizes"></div>
+          </div>
+        </div>
+        <label class="field">
+          <span>Фоновые объекты: <b id="bg-count-label">1</b></span>
+          <input type="range" id="bg-count" min="0" max="3" value="1">
+        </label>
+        <div class="row">
+          <button class="btn primary grow" id="compose">Собрать композицию</button>
+          <button class="btn" id="variant" title="Другая раскладка тех же объектов">Ещё вариант</button>
+        </div>
+        <div class="explain" id="explain" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <h2>Цветовая палитра</h2>
+        <div class="presets" id="presets"></div>
+        <div class="swatches" id="swatches"></div>
+        <div class="row">
+          <label class="btn small file">Загрузить палитру
+            <input type="file" id="palette-file" accept=".json,.txt,.css,.gpl,.scss,.svg,text/*">
+          </label>
+          <label class="check"><input type="checkbox" id="show-bg" checked> Фон</label>
+        </div>
+        <p class="hint">Файл с цветами #RRGGBB: JSON, CSS, .gpl или просто список. 8 цветов берутся по ролям, иначе распределяются по светлоте. Фон всегда берётся из цвета фона схемы — цвета объектов в фон не попадают.</p>
+      </section>
+    </aside>
+
+    <section class="stage-wrap" aria-label="Холст">
+      <div class="toolbar" id="item-toolbar">
+        <span class="toolbar-title" id="selection-title">Ничего не выбрано</span>
+        <button class="btn small" data-action="duplicate" title="Ctrl+D">Дублировать</button>
+        <button class="btn small" data-action="flip">Отразить</button>
+        <button class="btn small" data-action="forward" title="]">Выше</button>
+        <button class="btn small" data-action="backward" title="[">Ниже</button>
+        <button class="btn small" data-action="rotate-reset">Сбросить поворот</button>
+        <button class="btn small danger" data-action="delete" title="Delete">Удалить</button>
+      </div>
+      <div class="stage" id="stage-host">
+        <svg id="stage" xmlns="http://www.w3.org/2000/svg">
+          <rect id="stage-bg"/>
+          <g id="stage-items"></g>
+          <g id="stage-overlay"></g>
+        </svg>
+        <div class="empty" id="empty">Опишите метафору слева или перетащите объекты из библиотеки</div>
+      </div>
+      <p class="hint center">Тяните объект, чтобы переместить · круглая ручка — поворот (Shift — шаг 15°) · квадратная — масштаб · стрелки сдвигают</p>
+    </section>
+
+    <aside class="panel right" aria-label="Библиотека и слои">
+      <section class="card">
+        <div class="row between">
+          <h2>Библиотека</h2>
+          <div class="segmented small" id="variant-switch">
+            <button data-variant="main" class="active">Основные</button>
+            <button data-variant="bg">Фоновые</button>
+          </div>
+        </div>
+        <div class="library" id="library"></div>
+        <label class="btn small file wide">Загрузить свой SVG
+          <input type="file" id="svg-file" accept=".svg,image/svg+xml" multiple>
+        </label>
+      </section>
+      <section class="card">
+        <h2>Слои</h2>
+        <ol class="layers" id="layers"></ol>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

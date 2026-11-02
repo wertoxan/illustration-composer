@@ -1,0 +1,13 @@
+{
+  "name": "illustration-composer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web service that assembles vector compositions from a fixed library of SVG illustration elements.",
+  "scripts": {
+    "split": "node tools/split-library.mjs",
+    "examples": "node tools/make-examples.mjs",
+    "test": "node --test tests/core.test.js",
+    "start": "python -m http.server 8790"
+  }
+}

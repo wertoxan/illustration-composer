@@ -1,0 +1,5 @@
+# Library and examples can be fetched from other origins (e.g. a Figma plugin).
+/library/*
+  Access-Control-Allow-Origin: *
+/examples/*
+  Access-Control-Allow-Origin: *
