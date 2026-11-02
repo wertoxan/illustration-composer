@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>split</title>
+<body style="margin:0">
+<div id="host"></div>
+<script>
+// Loads a flat Figma SVG export and groups its paths into objects by bounding-box proximity.
+async function split(file, gap) {
+  const text = await fetch(file).then(r => r.text());
+  const host = document.getElementById('host');
+  host.innerHTML = text;
+  const svg = host.querySelector('svg');
+  const shapes = [...svg.querySelectorAll('path,rect,circle,ellipse,line,polygon,polyline')]
+    .filter(el => !el.closest('defs,clipPath,mask'));
+  const vb = svg.viewBox.baseVal;
+  // Section background and border span the whole canvas and would glue everything together.
+  const isBackdrop = b => b.width > vb.width * 0.5 || b.height > vb.height * 0.5;
+  const boxes = shapes.map(el => {
+    const b = el.getBBox();
+    if (isBackdrop(b)) return null;
+    return { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height };
+  });
+  const parent = boxes.map((_, i) => i);
+  const find = i => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const near = (a, b) => a.x0 - gap <= b.x1 && b.x0 - gap <= a.x1 && a.y0 - gap <= b.y1 && b.y0 - gap <= a.y1;
+  for (let i = 0; i < boxes.length; i++)
+    for (let j = i + 1; j < boxes.length; j++)
+      if (boxes[i] && boxes[j] && near(boxes[i], boxes[j])) parent[find(i)] = find(j);
+  const groups = new Map();
+  boxes.forEach((b, i) => {
+    if (!b) return;
+    const r = find(i);
+    const g = groups.get(r) || { idx: [], x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    g.idx.push(i);
+    g.x0 = Math.min(g.x0, b.x0); g.y0 = Math.min(g.y0, b.y0);
+    g.x1 = Math.max(g.x1, b.x1); g.y1 = Math.max(g.y1, b.y1);
+    groups.set(r, g);
+  });
+  const list = [...groups.values()].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+  return { total: shapes.length, groups: list.map(g => ({ n: g.idx.length, x: Math.round(g.x0), y: Math.round(g.y0), w: Math.round(g.x1 - g.x0), h: Math.round(g.y1 - g.y0), idx: g.idx })) };
+}
+</script>
+</body>
